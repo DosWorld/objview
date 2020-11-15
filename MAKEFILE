@@ -1,0 +1,5 @@
+omfview.exe: omfview.pas
+	tpc -M omfview.pas
+
+clean:
+	del *.tpu
