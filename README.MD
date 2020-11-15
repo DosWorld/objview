@@ -1,10 +1,14 @@
 # OmfView
 
-This is tools for investigation OBJ/OMF files.
+This is MS-DOS tool for investigation OBJ/LIB files in OMF format.
 
 # Using
 
         omfview objfile.obj
+
+# Screenshot
+
+![Image Screenshot - OMFVIEW main screen](https://github.com/DosWorld/omfview/raw/main/OMFVIEW.PNG)
 
 # Build
 
@@ -16,3 +20,4 @@ Just type:
 # License
 
 MIT License
+
