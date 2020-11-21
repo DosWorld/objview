@@ -21,27 +21,28 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 }
-{$G-,A-,D+,L+,R+,S+,Q+}
-{$M 32000, 128000, 640000}
+{$G-,A-,D-,L-,R-,S-,Q-}
+{$M 32000, 128000, 650000}
 
 uses strutil, obj, scr, kbd;
 
 const
-BGCOLOR = $17;
+BGCOLOR = $07;
 
 type
 
-PViewItem=^TViewItem;
-TViewItem=record
-        name     : string[80];
+PViewItem =^ TViewItem;
+TViewItem = record
         o        : PObj;
         next     : PViewItem;
+        alloc    : word;
+        name     : string;
 end;
 
-var h,w:word;
+var h, w : word;
 
-function type2name(t:byte):string;
-var s:string;
+function type2name(t : byte):string;
+var s : string;
 begin
         case t of
         OBJ_THEADER: s := 'THEADER';
@@ -64,34 +65,34 @@ begin
         type2name := hexb(t) + '-' + s;
 end;
 
-procedure freeall(root:PViewItem);
-var item:PViewItem;
+procedure freeall(root : PViewItem);
+var item : PViewItem;
 begin
         while root <> nil do begin
                 item := root;
                 root := root^.next;
-                freemem(item, sizeof(TViewItem));
+                freemem(item, item^.alloc);
         end;
 end;
 
-function getc(hl:boolean;cur : PViewItem):byte;
+function getc(hl : boolean; cur : PViewItem):byte;
 var c : byte;
 begin
         c := BGCOLOR;
         if hl then c:=$20
         else if cur^.o <> nil then begin
                 case cur^.o^.t of
-                OBJ_LHEADER: c := $12;
-                OBJ_THEADER: c := $12;
-                OBJ_LEDATA:  c := $13;
-                OBJ_MODEND:  c := $16;
-                OBJ_LIBEND:  c := $16;
+                OBJ_LHEADER: c := $02;
+                OBJ_THEADER: c := $02;
+                OBJ_LEDATA:  c := $03;
+                OBJ_MODEND:  c := $06;
+                OBJ_LIBEND:  c := $06;
                 end;
         end;
         getc := c;
 end;
 
-function mem2str(ofs:longint;m:pchar;len:byte):string;
+function mem2str(ofs : longint; m : pchar; len : byte):string;
 var s2, s3 : string;
          i : byte;
 begin
@@ -104,7 +105,11 @@ begin
         mem2str := ' ' + hexdw(ofs) + ' ' + rpad(s2, 17*3) + '  ' + s3;
 end;
 
-function view_list(title:string; vroot:PViewItem; var current:PViewItem; total:word; var scr_start, scr_pos : word):word;
+function view_list(title       : string;
+                   vroot       : PViewItem;
+                   var current : PViewItem;
+                   total       : word;
+                   var scr_start, scr_pos : word):word;
 var vcur : PViewItem;
         k, i   : word;
         c      : byte;
@@ -126,11 +131,13 @@ begin
                         while (vcur <> nil) and (i <= scr_start + h - 2) do begin
                                 c := getc(i = (scr_start + scr_pos), vcur);
                                 if i = (scr_start + scr_pos) then current := vcur;
+                                if i = (scr_start + scr_pos) then scr.cln(0, i - scr_start + 1, c);
                                 scr.print(0, i - scr_start + 1, c, vcur^.name);
                                 inc(i);
                                 vcur := vcur^.next;
                         end;
-                        print(0, 0, $70, rpad(title + ' ' + lpad(s1, 5) + ' / ' + s2, w));
+                        scr.cln(0, 0, $70);
+                        printhl(0, 0, $70, $74, title + ' ' + lpad(s1, 5) + ' / ' + s2);
                 end;
                 scr.show;
                 k := getkey;
@@ -184,12 +191,14 @@ begin
         view_list := k;
 end;
 
-procedure view_entry(title:string; o:PObj);
+procedure view_entry(title : string; o : PObj);
 var vroot, vlast, vcur : PViewItem;
         ofs                : longint;
         key, i, l, total   : word;
         scr_start, scr_pos : word;
         s, s1              : string;
+        name               : string;
+        alloc              : word;
 begin
         vroot := nil; vlast := nil;
         total := 0;
@@ -198,10 +207,13 @@ begin
                 i := 1;
                 while i < o^.count do begin
                         inc(total, 1);
-                        getmem(vcur, sizeof(TViewItem));
                         s := obj.get_str(o, i + 1, ord(o^.mem[i]));
-                        vcur^.name := ' ' + lpad(wtoa(total), 8) + ': ' + s + '(' + wtoa(ord(o^.mem[i])) + ')';
+                        name := ' ' + lpad(wtoa(total), 8) + ': ' + s + '(' + wtoa(ord(o^.mem[i])) + ')';
+                        alloc := sizeof(TViewItem) - 256 + length(name) + 1;
+                        getmem(vcur, alloc);
+                        vcur^.name := name;
                         vcur^.o := nil;
+                        vcur^.alloc := alloc;
                         vcur^.next := nil;
                         if vroot = nil then vroot := vcur;
                         if vlast <> nil then vlast^.next := vcur;
@@ -212,13 +224,16 @@ begin
 
         i := 0;
         ofs := o^.ofs;
-        title := title + ' ' + type2name(o^.t);
+        title := title + ' ~' + type2name(o^.t) + '~';
         while i < o^.count do begin
                 l := o^.count - i;
                 if l > 16 then l := 16;
+                name := mem2str(ofs, o^.mem + i, l);
+                alloc := sizeof(TViewItem) - 256 + length(name) + 1;
                 getmem(vcur, sizeof(TViewItem));
-                vcur^.name := mem2str(ofs, o^.mem + i, l);
+                vcur^.name := name;
                 vcur^.o := nil;
+                vcur^.alloc := alloc;
                 vcur^.next := nil;
                 if vroot = nil then vroot := vcur;
                 if vlast <> nil then vlast^.next := vcur;
@@ -239,7 +254,7 @@ begin
         freeall(vroot);
 end;
 
-procedure view(fname:string; o:PObj);
+procedure view(fname : string; o : PObj);
 var vroot, vlast, vcur : PViewItem;
         selected, k    : PObj;
         s              : string;
@@ -248,21 +263,28 @@ var vroot, vlast, vcur : PViewItem;
         c              : byte;
         s1, s2         : string[10];
         title          : string;
+        name           : string;
+        alloc          : word;
 begin
         vroot := nil; vlast := nil;
         k := o; total := 0;
         while k <> nil do begin
-                getmem(vcur, sizeof(TViewItem));
-                vcur^.name := ' '+hexdw(k^.ofs)+' | '+hexw(k^.count)+' | '+type2name(k^.t);
+                name := ' ' + hexdw(k^.ofs) +
+                        ' ' + #$B3 + ' ' + hexw(k^.count) +
+                        ' ' + #$B3 + ' ' + type2name(k^.t);
                 if k^.t = OBJ_THEADER then begin
                         if k^.count > 1 then begin
                                 title := obj.get_str(k, 1, ord(k^.mem[0]));
-                                vcur^.name := vcur^.name + ' ' + title;
+                                name := name + ' ' + title;
                         end;
                 end;
-                vcur^.name := rpad(vcur^.name, w);
+                if length(name) >= w then name := copy(name, 1, w - 1);
+                alloc := sizeof(TViewItem) - 256 + length(name) + 1;
+                getmem(vcur, sizeof(TViewItem));
+                vcur^.name := name;
                 vcur^.next := nil;
                 vcur^.o := k;
+                vcur^.alloc := alloc;
                 if vroot = nil then vroot := vcur;
                 if vlast <> nil then vlast^.next := vcur;
                 vlast := vcur;
@@ -277,19 +299,21 @@ begin
                 key := hi(view_list(title, vroot, vcur, total, scr_start, scr_pos));
                 case key of
                 SCAN_ESC: break;
-                SCAN_RIGHT, SCAN_ENTER: view_entry(title, vcur^.o);
+                SCAN_RIGHT, SCAN_ENTER: begin view_entry(title, vcur^.o); kbd.reset; end;
                 end;
         end;
         freeall(vroot);
 end;
 
-var o:PObj; fname:string;
+var
+        o        : PObj;
+        fname    : string;
 begin
         writeln('OmfView (c) 2020 by DosWorld.  MIT License');
-        writeln;
-        if paramcount<>1 then begin
+        if paramcount <> 1 then begin
+                writeln;
                 writeln('Usage:');
-                writeln(chr(9)+upstr(basename(paramstr(0)))+' file.obj');
+                writeln(chr(9) + upstr(basename(paramstr(0))) + ' file.obj');
                 halt(1);
         end;
         fname := paramstr(1);
@@ -301,9 +325,10 @@ begin
         h := getheight;
         w := getwidth;
         scr.push;
-        view(upstr(basename(fname)), o);
+        view(upstr(upstr(basename(fname))), o);
         scr.pop;
         scr.show;
         obj.free(o);
+        kbd.reset;
         halt(0);
 end.
