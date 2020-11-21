@@ -67,8 +67,11 @@ function lpad(s : string; len : integer):string;
 function itoa(i : integer):string;
 function wtoa(w : word):string;
 function ltoa(l : longint):string;
+function atoi(s : string; default_val : integer) : integer;
 function atol(s : string; default_val : longint) : longint;
 function ahtob(str : string) : byte;
+
+function unquote(str : string) : string;
 
 implementation
 
@@ -113,7 +116,7 @@ begin
 end;
 
 function strlen(p:pchar):word;
-var s:pchar;
+var s : pchar;
 begin
         s := p;
         while p[0] <> #0 do inc(p);
@@ -121,33 +124,25 @@ begin
 end;
 
 function basename(s:string):string;
-var r:string;
-        i : integer;
+var     i : integer;
 begin
-        i := length(s);
-        for i:=length(s) downto 0 do
+        for i := length(s) downto 0 do
         begin
-                case s[i] of
-                ':','\','/': break;
-                end;
+                if s[i] in [':','\','/'] then break;
         end;
-        if i = 0 then r := s else r := copy(s, i+1, length(s) - i);
-        basename := r;
+        if i <> 0 then s := copy(s, i+1, length(s) - i);
+        basename := s;
 end;
 
 function getpathname(s:string):string;
-var r:string;
-        i : integer;
+var     i : integer;
 begin
-        i := length(s);
-        for i:=length(s) downto 0 do
+        for i := length(s) downto 0 do
         begin
-                case s[i] of
-                ':','\','/': break;
-                end;
+                if s[i] in [':','\','/'] then break;
         end;
-        if i = 0 then r := '' else r := copy(s, 1, i);
-        getpathname := r;
+        if i <> 0 then s := copy(s, 1, i);
+        getpathname := s;
 end;
 
 function change_ext(s:string; new_ext:string):string;
@@ -155,6 +150,7 @@ var r : string;
         i, p, l : integer;
 begin
         l := length(s);
+        p := 0;
         for i := l downto 0 do begin
                 case s[i] of
                 '.': break;
@@ -186,7 +182,7 @@ begin
 end;
 
 function hexb(b : byte):string;
-const a:string[16] = '0123456789ABCDEF';
+const a : string[16] = '0123456789ABCDEF';
 begin
         hexb := a[((b shr 4) and $0f) + 1] + a[(b and $0f) + 1];
 end;
@@ -239,17 +235,17 @@ end;
 
 function is_digit(c:char):boolean;
 begin
-        is_digit := (c >= '0') and (c <= '9');
+        is_digit := c in ['0'..'9'];
 end;
 
 function is_alpha(c:char):boolean;
 begin
-        is_alpha := ((c >= 'a') and (c <= 'z')) or ((c >= 'A') and (c <= 'Z'));
+        is_alpha := c in ['a'..'z', 'A'..'Z'];
 end;
 
 function is_hdigit(c:char):boolean;
 begin
-        is_hdigit := ((c >= '0') and (c <= '9')) or ((c >= 'a') and (c <= 'f')) or ((c >= 'A') and (c <= 'F'));
+        is_hdigit := c in ['0'..'9', 'a'..'f', 'A'..'F'];
 end;
 
 function is_id(c:char):boolean;
@@ -323,11 +319,9 @@ end;
 
 function strchr(p : pchar; c : char) : pchar;assembler;
 asm
-        mov        ah, byte ptr [c]
-        mov        si, word ptr [p]
-        mov        bx, word ptr [p+2]
         push       ds
-        mov        ds, bx
+        mov        ah, c
+        lds        si, p
         cld
 @cont:
         lodsb
@@ -349,6 +343,14 @@ begin
      atol := res;
 end;
 
+function atoi(s : string; default_val : integer) : integer;
+var res : integer; err_pos : integer;
+begin
+     val(s, res, err_pos);
+     if err_pos <> 0 then res := default_val;
+     atoi := res;
+end;
+
 function ahtob(str : string) : byte;
 var r : byte;
         i        : integer;
@@ -367,6 +369,16 @@ begin
                 r := (r shl 4) or (k and $0F);
         end;
         ahtob := r;
+end;
+
+function unquote(str : string) : string;
+begin
+        if length(str) > 0 then begin
+                if str[1] = '"' then begin
+                        str := copy(str, 2, length(str) - 2);
+                end;
+        end;
+        unquote := str;
 end;
 
 end.
