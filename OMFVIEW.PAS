@@ -303,6 +303,7 @@ begin
         scr.push;
         view(upstr(basename(fname)), o);
         scr.pop;
+        scr.show;
         obj.free(o);
         halt(0);
 end.
