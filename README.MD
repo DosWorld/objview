@@ -6,6 +6,10 @@ This is MS-DOS tool for investigation OBJ/LIB files in OMF format.
 
         omfview objfile.obj
 
+or
+
+        omfview "Long file name.obj"
+
 # Screenshot
 
 ![Image Screenshot - OMFVIEW main screen](https://github.com/DosWorld/omfview/raw/main/OMFVIEW.PNG)
@@ -20,4 +24,4 @@ Just type:
 # License
 
 MIT License
-
+
