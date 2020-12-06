@@ -31,18 +31,18 @@ const
 OBJ_THEADER = $80;
 OBJ_LHEADER = $F0;
 OBJ_COMMENT = $88;
-OBJ_PUBDEF = $90;
-OBJ_LINNUM = $94;
-OBJ_LNAMES = $96;
-OBJ_SEGDEF = $98;
-OBJ_GRPDEF = $9A;
-OBJ_FIXUP = $9C;
-OBJ_COMDEF = $B0;
-OBJ_LEDATA = $A0;
-OBJ_LIDATA = $A2;
-OBJ_EXTDEF = $8C;
-OBJ_MODEND = $8A;
-OBJ_LIBEND = $F1;
+OBJ_PUBDEF  = $90;
+OBJ_LINNUM  = $94;
+OBJ_LNAMES  = $96;
+OBJ_SEGDEF  = $98;
+OBJ_GRPDEF  = $9A;
+OBJ_FIXUP   = $9C;
+OBJ_COMDEF  = $B0;
+OBJ_LEDATA  = $A0;
+OBJ_LIDATA  = $A2;
+OBJ_EXTDEF  = $8C;
+OBJ_MODEND  = $8A;
+OBJ_LIBEND  = $F1;
 
 FIXUP_P_16BIT = 0;
 FIXUP_P_32BIT = 1;
@@ -71,37 +71,38 @@ type
 PObj=^TObj;
 TObj=record
         t        : byte;
-        count        : word;
-        mem        : pchar;
-        ofs        : longint;
-        module        : PObj;
-        next        : PObj;
+        count    : word;
+        mem      : pchar;
+        ofs      : longint;
+        module   : PObj;
+        next     : PObj;
 end;
 
-function load(fname:string):PObj;
-procedure save(obj:PObj; fname:string);
-function lookup(obj:PObj; t:byte):PObj;
-procedure free(obj:PObj);
+function load(fname : string):PObj;
+procedure save(obj : PObj; fname : string);
+function lookup(obj : PObj; t : byte):PObj;
+procedure free(obj : PObj);
 
-function create(t:byte; count:word; parent:PObj):PObj;
-function is_type(obj:PObj; t:byte):boolean;
-procedure merge_fixup(obj:PObj);
+function create(t : byte; count : word; parent : PObj):PObj;
+function is_type(obj : PObj; t : byte):boolean;
+procedure merge_fixup(obj : PObj);
 
-function get_str(obj:PObj; ofs,len:word):string;
-procedure set_str(obj:PObj; ofs:word; s:string);
+function get_str(obj : PObj; ofs, len : word):string;
+procedure set_str(obj : PObj; ofs : word; s : string);
 
-procedure getFixupAttr(bval:char; var p:integer; var B:integer; var C:integer; var A:integer);
-procedure setFixupAttr(p:integer; B:integer; C:integer; A:integer; var bval:char);
-procedure getFixupLocat(b1, b2:char; var ofs:word; var location:integer; var m:integer; var one:integer);
-procedure getFixupFixData(bval:char; var target:integer; var P:integer; var T:integer; var Frame:integer; var F:integer);
-procedure getFixupTrDat(bval:char; var Thread:integer; var Method:integer; var D:integer; var Zero:integer);
+procedure getFixupAttr(bval : char; var p : integer; var B : integer; var C : integer; var A : integer);
+procedure setFixupAttr(p : integer; B : integer; C : integer; A : integer; var bval : char);
+procedure getFixupLocat(b1, b2 : char; var ofs:word; var location : integer; var m : integer; var one : integer);
+procedure getFixupFixData(bval : char; var target : integer; var P : integer; var T : integer;
+var Frame : integer; var F : integer);
+procedure getFixupTrDat(bval : char; var Thread : integer; var Method : integer; var D : integer; var Zero : integer);
 
 implementation
 
 uses lfn;
 
-function create(t:byte; count:word; parent:PObj):PObj;
-var r:PObj;
+function create(t : byte; count : word; parent : PObj) : PObj;
+var r : PObj;
 begin
         getmem(r, sizeof(TObj));
         r^.t := t;
@@ -112,8 +113,8 @@ begin
         create := r;
 end;
 
-function load(fname:string):PObj;
-var r, last : PObj;
+function load(fname : string) : PObj;
+var r, last    : PObj;
         f      : word;
         crc, b : byte;
         w      : word;
@@ -150,8 +151,8 @@ begin
         load := r;
 end;
 
-function crc(t:byte;count:word; mem:pchar; len:word):byte;
-var i:word; r:byte;
+function crc(t : byte; count : word; mem : pchar; len : word):byte;
+var i : word; r : byte;
 begin
         r := t;
         inc(r, lo(count));
@@ -160,7 +161,7 @@ begin
         crc := (-r) and $FF;
 end;
 
-procedure save(obj:PObj; fname:string);
+procedure save(obj : PObj; fname : string);
 var f : word;
         b     : byte;
         w     : word;
@@ -188,7 +189,7 @@ begin
         lclose(f);
 end;
 
-function is_type(obj:PObj; t:byte):boolean;
+function is_type(obj : PObj; t : byte):boolean;
 begin
         if obj = nil then is_type:=false else is_type:=obj^.t=t;
 end;
@@ -239,7 +240,7 @@ begin
 end;
 
 function get_str(obj:PObj; ofs, len:word):string;
-var r:string;
+var     r : string;
         i : integer;
 begin
         r := '';
@@ -251,7 +252,7 @@ begin
 end;
 
 procedure set_str(obj:PObj; ofs:word; s:string);
-var i,l : integer;
+var i, l : integer;
 begin
         l := length(s);
         for i := 1 to l do begin
@@ -277,7 +278,7 @@ begin
 end;
 
 procedure getFixupLocat(b1, b2:char; var ofs:word; var location:integer; var m:integer; var one:integer);
-var w:word;
+var w : word;
 begin
         w := (ord(b1) and $ff) or ((ord(b2) and $ff) shl 8);
         ofs := (w shr 6) and $3f;
