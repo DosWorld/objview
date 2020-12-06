@@ -24,7 +24,7 @@ SOFTWARE.
 {$G-,A-,D-,L-,R-,S-,Q-}
 {$M 32000, 128000, 650000}
 
-uses strutil, obj, scr, kbd;
+uses scr, kbd, strutil, obj, dwedpar;
 
 const
 BGCOLOR = $07;
@@ -305,18 +305,23 @@ begin
         freeall(vroot);
 end;
 
+type
+PString = ^String;
+
 var
         o        : PObj;
         fname    : string;
+        params   : ParamsContext;
 begin
         writeln('OmfView (c) 2020 by DosWorld.  MIT License');
-        if paramcount <> 1 then begin
+        pinit(params, trim(PString(ptr(PrefixSeg, $80))^));
+        if not phas_next(params) then begin
                 writeln;
                 writeln('Usage:');
                 writeln(chr(9) + upstr(basename(paramstr(0))) + ' file.obj');
                 halt(1);
         end;
-        fname := paramstr(1);
+        fname := pnext(params);
         o:=obj.load(fname);
         if o = nil then begin
                 writeln('Could not load ', fname);

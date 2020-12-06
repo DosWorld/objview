@@ -21,7 +21,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 }
-{$G-,A-,S,R+,I-,Q+}
+{$G-,A-,S-,R-,I-,Q-}
 unit obj;
 
 interface
@@ -98,6 +98,8 @@ procedure getFixupTrDat(bval:char; var Thread:integer; var Method:integer; var D
 
 implementation
 
+uses lfn;
+
 function create(t:byte; count:word; parent:PObj):PObj;
 var r:PObj;
 begin
@@ -112,41 +114,39 @@ end;
 
 function load(fname:string):PObj;
 var r, last : PObj;
-        f : file;
+        f      : word;
         crc, b : byte;
-        w : word;
-        p : longint;
-        islib : boolean;
-        module        : PObj;
+        w      : word;
+        p      : longint;
+        islib  : boolean;
+        module : PObj;
 begin
         islib := false;
         r := nil; last := nil; module := nil;
-        assign(f, fname);
-        {$I-}
-        reset(f, 1);
-        while not eof(f) do begin
-                p := filepos(f);
-                blockread(f, b, 1);
-                blockread(f, w, 2);
+        f := lopen_r(fname);
+        if f = 0 then begin load := nil; exit; end;
+        while not leof(f) do begin
+                p := ltell(f);
+                lread(f, b, 1);
+                lread(f, w, 2);
                 dec(w, 1);
                 last := create(b, w, last);
                 last^.ofs := p;
                 last^.module := module;
-                blockread(f, last^.mem[0], w);
+                lread(f, last^.mem[0], w);
                 if r = nil then r := last;
-                blockread(f, crc, 1);
+                lread(f, crc, 1);
                 if b = OBJ_THEADER then module := last;
                 if b = OBJ_LHEADER then islib := true;
                 if b = OBJ_MODEND then begin
                         if not islib then break;
-                        p := filepos(f);
-                        if p and $0f <> 0 then seek(f, p + 16 - (p and $0F));
+                        p := ltell(f);
+                        if p and $0f <> 0 then lseek(f, SEEK_CUR, 16 - (p and $0F));
                         module := nil;
                 end;
                 if b = OBJ_LIBEND then break;
         end;
-        close(f);
-        {$I+}
+        lclose(f);
         load := r;
 end;
 
@@ -161,31 +161,31 @@ begin
 end;
 
 procedure save(obj:PObj; fname:string);
-var f : file;
-        b : byte;
-        w : word;
+var f : word;
+        b     : byte;
+        w     : word;
         islib : boolean;
-        m : array[1..16] of byte;
-        p : longint;
+        m     : array[1..16] of byte;
+        p     : longint;
 begin
         islib := false;
-        assign(f, fname);
-        rewrite(f, 1);
+        f := lopen_w(fname);
+        if f = 0 then exit;
         while obj <> nil do begin
                 if obj^.t = OBJ_LHEADER then islib := true;
                 w := obj^.count + 1;
-                blockwrite(f, obj^.t, 1);
-                blockwrite(f, w, 2);
-                blockwrite(f, obj^.mem[0], obj^.count);
+                lwrite(f, obj^.t, 1);
+                lwrite(f, w, 2);
+                lwrite(f, obj^.mem[0], obj^.count);
                 b := crc(obj^.t, w, obj^.mem, obj^.count);
-                blockwrite(f, b, 1);
+                lwrite(f, b, 1);
                 if islib and (obj^.t = OBJ_MODEND) then begin
-                        p := filepos(f);
-                        if p and $0f <> 0 then blockwrite(f, m, 16 - (p and $0F));
+                        p := ltell(f);
+                        if p and $0f <> 0 then lwrite(f, m, 16 - (p and $0F));
                 end;
                 obj := obj^.next;
         end;
-        close(f);
+        lclose(f);
 end;
 
 function is_type(obj:PObj; t:byte):boolean;
