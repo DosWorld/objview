@@ -53,7 +53,7 @@ BEGIN
         END;
 END;
 
-PROCEDURE append(s : STRING);
+PROCEDURE Append(s : STRING);
 VAR item : PViewItem;
 BEGIN
         GetMem(item, SizeOf(TViewItem));
@@ -68,7 +68,12 @@ FUNCTION getc(hl : BOOLEAN; cur : PViewItem) : BYTE;
 VAR c : BYTE;
 BEGIN
         c := BGCOLOR;
-        IF hl THEN c:=$20;
+        IF hl THEN c:=$20 ELSE BEGIN
+                IF Length(cur^.name) > 0 THEN BEGIN
+                        IF cur^.name[1] = ' ' THEN c := $13
+                        ELSE IF cur^.name[1] = '*' THEN c := $14;
+                END;
+        END;
         getc := c;
 END;
 
@@ -303,8 +308,11 @@ VAR
         reserv   : WORD;
         seglen   : LONGINT;
         s        : STRING;
+        havesegs : BOOLEAN;
 BEGIN
+        havesegs := FALSE;
         WHILE NOT eof(f) DO BEGIN
+                havesegs := TRUE;
                 BlockRead(f, segtype, SizeOf(segtype));
                 BlockRead(f, segnum, SizeOf(segnum));
                 BlockRead(f, reserv, SizeOf(reserv));
@@ -322,6 +330,7 @@ BEGIN
                 IF segtype = 0 THEN BREAK;
                 Seek(f, FilePos(f) + seglen);
         END;
+        IF not havesegs THEN Append('*** Here is no any segments ***');
 END;
 
 type
@@ -333,10 +342,12 @@ VAR
         fullen  : LONGINT;
         modlen  : LONGINT;
         hdrlen  : LONGINT;
+        hdrrecs : BOOLEAN;
         rtype   : BYTE;
         rdata   : STRING;
         i       : INTEGER;
         fname   : STRING;
+        str     : STRING;
         params  : ParamsContext;
 BEGIN
         Writeln('RDFVIEW for NASM-0.98.39  (c) 2020 by DosWorld.  MIT License');
@@ -366,27 +377,33 @@ BEGIN
         BlockRead(f, hdrlen, SizeOf(LONGINT));
         sign[0] := #6;
         Append('');
-        Append('File name:   ' + fname);
-        Append('File size:   ' + hexdw(fullen) + ' ' + itoa(fullen));
-        Append('Signature:   ' + sign);
-        Append('Module size: ' + hexdw(modlen) + ' ' + itoa(modlen));
-        Append('Header size: ' + hexdw(hdrlen) + ' ' + itoa(hdrlen));
+        Append(' File name:   ' + fname);
+        Append(' File size:   ' + hexdw(fullen) + ' ' + itoa(fullen));
+        Append(' Signature:   ' + sign);
+        Append(' Module size: ' + hexdw(modlen) + ' ' + itoa(modlen));
+        Append(' Header size: ' + hexdw(hdrlen) + ' ' + itoa(hdrlen));
         Append('');
-        Append('Header record(s)');
-        Append('');
-        WHILE hdrlen <> 0 DO BEGIN
-                Write(hexdw(FilePos(f)), ' ');
-                BlockRead(f, rtype, 1);
-                BlockRead(f, rdata[0], 1);
-                Dec(hdrlen, 2);
-                BlockRead(f, rdata[1], ORD(rdata[0]));
-                Dec(hdrlen, ORD(rdata[0]));
-                Append(hexb(ORD(rdata[0])) + ' ' + hexb(rtype) + '-' + DumpRec(rtype, rdata));
+        IF sign = 'RDOFF2' THEN BEGIN
+                Append(' Header records');
+                hdrrecs := FALSE;
+                WHILE hdrlen <> 0 DO BEGIN
+                        str := hexdw(FilePos(f)) + ' ';
+                        BlockRead(f, rtype, 1);
+                        BlockRead(f, rdata[0], 1);
+                        Dec(hdrlen, 2);
+                        BlockRead(f, rdata[1], ORD(rdata[0]));
+                        Dec(hdrlen, ORD(rdata[0]));
+                        Append(str + hexb(ORD(rdata[0])) + ' ' + hexb(rtype) + '-' + DumpRec(rtype, rdata));
+                        hdrrecs := TRUE;
+                END;
+                IF not hdrrecs THEN Append('*** Here is no any records ***');
+                Append('') ;
+                Append(' Segments');
+                DumpSegs(f, modlen);
+                Append('');
+        END ELSE BEGIN
+                Append('*** File have no RDOFF2 signature, so it seems like not a RDF. ***');
         END;
-        Append('');
-        Append('Segment(s)');
-        Append('');
-        DumpSegs(f, modlen);
         Close(f);
         h := getheight;
         w := getwidth;
