@@ -15,9 +15,15 @@ or
         omfview "Long file name.obj"
         rdfview "Long file name.rdf"
 
-# Screenshot
+# Screenshots
+
+OMFView :
 
 ![Image Screenshot - OMFVIEW main screen](https://github.com/DosWorld/omfview/raw/main/OMFVIEW.PNG)
+
+RDFView :
+
+![Image Screenshot - RDFVIEW main screen](https://github.com/DosWorld/omfview/raw/main/RDFVIEW.PNG)
 
 # Build
 
