@@ -1,6 +1,6 @@
-# OmfView
+# Object file viewers
 
-This is MS-DOS tools for investigation object formats:
+Here is MS-DOS tools for investigation object formats:
 
 * omfview - OBJ/LIB files in OMF format.
 * rdfview - OBJ files in RDOFF2 format (NASM version 0.98.39).
