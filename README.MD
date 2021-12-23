@@ -8,12 +8,12 @@ This is MS-DOS tools for investigation object formats:
 # Using
 
         omfview objfile.obj
-        rdfview rdffile.obj
+        rdfview rdffile.rdf
 
 or
 
         omfview "Long file name.obj"
-        rdfview "Long file name.obj"
+        rdfview "Long file name.rdf"
 
 # Screenshot
 
