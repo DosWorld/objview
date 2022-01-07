@@ -24,7 +24,7 @@ SOFTWARE.
 {$G-,A-,D-,L-,R-,S-,Q-}
 {$M 32000, 128000, 650000}
 
-uses scr, kbd, strutil, obj;
+uses scr, kbd, strutil, obj, system2;
 
 const
 BGCOLOR = $07;
@@ -311,17 +311,17 @@ var
         o        : PObj;
         fname    : string;
 begin
-        writeln('OmfView (c) 2022 by DosWorld.  MIT License');
+        System.writeln('OmfView (c) 2022 by DosWorld.  MIT License');
         if paramcount <> 1 then begin
-                writeln;
-                writeln('Usage:');
-                writeln(chr(9) + upstr(basename(paramstr(0))) + ' file.obj');
+                System.writeln;
+                System.writeln('Usage:');
+                System.writeln(chr(9) + upstr(basename(paramstr(0))) + ' file.obj');
                 halt(1);
         end;
         fname := paramstr(1);
         o:=obj.load(fname);
         if o = nil then begin
-                writeln('Could not load ', fname);
+                WriteLnErr('Could not read '+ fname);
                 halt(1);
         end;
         h := getheight;

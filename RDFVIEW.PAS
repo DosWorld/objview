@@ -364,7 +364,7 @@ BEGIN
         Reset(f);
         i := f.ioResult;
         IF i <> 0 THEN BEGIN
-                System.Writeln('Could not load ', fname);
+                WriteLnErr('Could not read ' + fname);
                 Halt(1);
         END;
 

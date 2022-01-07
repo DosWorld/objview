@@ -83,6 +83,8 @@ PROCEDURE ChDir(s : STRING);
 PROCEDURE MkDir(s : STRING);
 PROCEDURE RmDir(s : STRING);
 
+PROCEDURE WriteLnErr (s : STRING);
+
 FUNCTION ParamCount : INTEGER;
 FUNCTION ParamStr(i : INTEGER) : STRING;
 
@@ -495,6 +497,12 @@ PROCEDURE WriteLn(VAR f : BFILE; s : STRING);
 BEGIN
         System2.BlockWrite(f, s[1], ORD(s[0]));
         IF f.ioresult = 0 THEN System2.BlockWrite(f, LN_STR[1], ORD(LN_STR[0]));
+END;
+
+PROCEDURE WriteLnErr (s : STRING);
+BEGIN
+        lWrite(2, s[1], ORD(s[0]));
+        lWrite(2, LN_STR[1], ORD(LN_STR[0]));
 END;
 
 PROCEDURE ReadLn(VAR f : BFILE; VAR s : STRING);
