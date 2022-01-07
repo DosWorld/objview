@@ -1,7 +1,7 @@
 {
  MIT License
 
-Copyright (c) 2020 Viacheslav Komenda
+Copyright (c) 2022 Viacheslav Komenda
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -22,11 +22,11 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 }
 {$G-,A-,S-,R-,I-,Q-}
-unit obj;
+UNIT obj;
 
-interface
+INTERFACE
 
-const
+CONST
 
 OBJ_THEADER = $80;
 OBJ_LHEADER = $F0;
@@ -66,242 +66,245 @@ FIXUP_D_FRAME = 1;
 FIXUP_ZERO_SUBREC = 1;
 FIXUP_ZERO_THREAD = 0;
 
-type
+TYPE
 
-PObj=^TObj;
-TObj=record
-        t        : byte;
-        count    : word;
-        mem      : pchar;
-        ofs      : longint;
+PObj = ^TObj;
+TObj = RECORD
+        t        : BYTE;
+        count    : WORD;
+        mem      : PCHAR;
+        ofs      : LONGINT;
         module   : PObj;
         next     : PObj;
-end;
+END;
 
-function load(fname : string):PObj;
-procedure save(obj : PObj; fname : string);
-function lookup(obj : PObj; t : byte):PObj;
-procedure free(obj : PObj);
+FUNCTION load(fname : STRING):PObj;
+PROCEDURE save(obj : PObj; fname : STRING);
+FUNCTION lookup(obj : PObj; t : BYTE):PObj;
+PROCEDURE free(obj : PObj);
 
-function create(t : byte; count : word; parent : PObj):PObj;
-function is_type(obj : PObj; t : byte):boolean;
-procedure merge_fixup(obj : PObj);
+FUNCTION create(t : BYTE; count : WORD; parent : PObj):PObj;
+FUNCTION is_type(obj : PObj; t : BYTE):BOOLEAN;
+PROCEDURE merge_fixup(obj : PObj);
 
-function get_str(obj : PObj; ofs, len : word):string;
-procedure set_str(obj : PObj; ofs : word; s : string);
+FUNCTION get_str(obj : PObj; ofs, len : WORD):STRING;
+PROCEDURE set_str(obj : PObj; ofs : WORD; s : STRING);
 
-procedure getFixupAttr(bval : char; var p : integer; var B : integer; var C : integer; var A : integer);
-procedure setFixupAttr(p : integer; B : integer; C : integer; A : integer; var bval : char);
-procedure getFixupLocat(b1, b2 : char; var ofs:word; var location : integer; var m : integer; var one : integer);
-procedure getFixupFixData(bval : char; var target : integer; var P : integer; var T : integer;
-var Frame : integer; var F : integer);
-procedure getFixupTrDat(bval : char; var Thread : integer; var Method : integer; var D : integer; var Zero : integer);
+PROCEDURE getFixupAttr(bval : CHAR; VAR p : INTEGER; VAR B : INTEGER; VAR C : INTEGER; VAR A : INTEGER);
+PROCEDURE setFixupAttr(p : INTEGER; B : INTEGER; C : INTEGER; A : INTEGER; VAR bval : CHAR);
+PROCEDURE getFixupLocat(b1, b2 : CHAR; VAR ofs:WORD; VAR location : INTEGER; VAR m : INTEGER; VAR one : INTEGER);
+PROCEDURE getFixupFixData(bval : CHAR; VAR target : INTEGER; VAR P : INTEGER; VAR T : INTEGER;
+VAR Frame : INTEGER; VAR F : INTEGER);
+PROCEDURE getFixupTrDat(bval : CHAR; VAR Thread : INTEGER; VAR Method : INTEGER; VAR D : INTEGER; VAR Zero : INTEGER);
 
-implementation
+IMPLEMENTATION
 
-uses lfn;
+USES System2;
 
-function create(t : byte; count : word; parent : PObj) : PObj;
-var r : PObj;
-begin
-        getmem(r, sizeof(TObj));
+FUNCTION create(t : BYTE; count : WORD; parent : PObj) : PObj;
+VAR r : PObj;
+BEGIN
+        GetMem(r, SizeOf(TObj));
         r^.t := t;
         r^.count := count;
-        r^.next := nil;
-        getmem(r^.mem, count);
-        if parent <> nil then parent^.next := r;
+        r^.next := NIL;
+        GetMem(r^.mem, count);
+        IF parent <> NIL THEN parent^.next := r;
         create := r;
-end;
+END;
 
-function load(fname : string) : PObj;
-var r, last    : PObj;
-        f      : word;
-        crc, b : byte;
-        w      : word;
-        p      : longint;
-        islib  : boolean;
-        module : PObj;
-begin
-        islib := false;
-        r := nil; last := nil; module := nil;
-        f := lopen_r(fname);
-        if f = 0 then begin load := nil; exit; end;
-        while not leof(f) do begin
-                p := ltell(f);
-                lread(f, b, 1);
-                lread(f, w, 2);
+FUNCTION load(fname : STRING) : PObj;
+VAR     r, last : PObj;
+        f       : BFILE;
+        crc, b  : BYTE;
+        w       : WORD;
+        p       : LONGINT;
+        islib   : BOOLEAN;
+        module  : PObj;
+BEGIN
+        islib := FALSE;
+        r := NIL; last := NIL; module := NIL;
+        Assign(f, fname);
+        Reset(f);
+        IF f.ioresult <> 0 THEN BEGIN load := NIL; exit; end;
+        WHILE NOT eof(f) DO BEGIN
+                p := FilePos(f);
+                BlockRead(f, b, 1);
+                BlockRead(f, w, 2);
                 dec(w, 1);
                 last := create(b, w, last);
                 last^.ofs := p;
                 last^.module := module;
-                lread(f, last^.mem[0], w);
-                if r = nil then r := last;
-                lread(f, crc, 1);
-                if b = OBJ_THEADER then module := last;
-                if b = OBJ_LHEADER then islib := true;
-                if b = OBJ_MODEND then begin
-                        if not islib then break;
-                        p := ltell(f);
-                        if p and $0f <> 0 then lseek(f, SEEK_CUR, 16 - (p and $0F));
-                        module := nil;
-                end;
-                if b = OBJ_LIBEND then break;
-        end;
-        lclose(f);
+                BlockRead(f, last^.mem[0], w);
+                IF r = NIL THEN r := last;
+                BlockRead(f, crc, 1);
+                IF b = OBJ_THEADER THEN module := last;
+                IF b = OBJ_LHEADER THEN islib := true;
+                IF b = OBJ_MODEND THEN BEGIN
+                        IF NOT islib THEN break;
+                        p := FilePos(f);
+                        IF p AND $0f <> 0 THEN Seek(f, FilePos(f) + 16 - (p AND $0F));
+                        module := NIL;
+                END;
+                IF b = OBJ_LIBEND THEN break;
+        END;
+        Close(f);
         load := r;
-end;
+END;
 
-function crc(t : byte; count : word; mem : pchar; len : word):byte;
-var i : word; r : byte;
-begin
+FUNCTION crc(t : BYTE; count : WORD; mem : PCHAR; len : WORD):BYTE;
+VAR     i : WORD;
+        r : BYTE;
+BEGIN
         r := t;
         inc(r, lo(count));
         inc(r, hi(count));
-        for i := 0 to len do inc(r, ord(mem[i]));
-        crc := (-r) and $FF;
-end;
+        FOR i := 0 to len DO inc(r, ORD(mem[i]));
+        crc := (-r) AND $FF;
+END;
 
-procedure save(obj : PObj; fname : string);
-var f : word;
-        b     : byte;
-        w     : word;
-        islib : boolean;
-        m     : array[1..16] of byte;
-        p     : longint;
-begin
-        islib := false;
-        f := lopen_w(fname);
-        if f = 0 then exit;
-        while obj <> nil do begin
-                if obj^.t = OBJ_LHEADER then islib := true;
+PROCEDURE save(obj : PObj; fname : STRING);
+VAR     f     : BFILE;
+        b     : BYTE;
+        w     : WORD;
+        islib : BOOLEAN;
+        m     : ARRAY[1..16] OF BYTE;
+        p     : LONGINT;
+BEGIN
+        islib := FALSE;
+        Assign(f, fname);
+        ReWrite(f);
+        IF f.ioresult <> 0 THEN exit;
+        WHILE obj <> NIL DO BEGIN
+                IF obj^.t = OBJ_LHEADER THEN islib := true;
                 w := obj^.count + 1;
-                lwrite(f, obj^.t, 1);
-                lwrite(f, w, 2);
-                lwrite(f, obj^.mem[0], obj^.count);
+                BlockWrite(f, obj^.t, 1);
+                BlockWrite(f, w, 2);
+                BlockWrite(f, obj^.mem[0], obj^.count);
                 b := crc(obj^.t, w, obj^.mem, obj^.count);
-                lwrite(f, b, 1);
-                if islib and (obj^.t = OBJ_MODEND) then begin
-                        p := ltell(f);
-                        if p and $0f <> 0 then lwrite(f, m, 16 - (p and $0F));
-                end;
+                BlockWrite(f, b, 1);
+                IF islib AND (obj^.t = OBJ_MODEND) THEN BEGIN
+                        p := FilePos(f);
+                        IF p AND $0f <> 0 THEN BlockWrite(f, m, 16 - (p AND $0F));
+                END;
                 obj := obj^.next;
-        end;
-        lclose(f);
-end;
+        END;
+        Close(f);
+END;
 
-function is_type(obj : PObj; t : byte):boolean;
-begin
-        if obj = nil then is_type:=false else is_type:=obj^.t=t;
-end;
+FUNCTION is_type(obj : PObj; t : BYTE):BOOLEAN;
+BEGIN
+        IF obj = NIL THEN is_type := FALSE ELSE is_type := obj^.t=t;
+END;
 
-procedure merge_fixup(obj:PObj);
-var cur, old : PObj;
-        w : word;
-        m : pchar;
-begin
+PROCEDURE merge_fixup(obj:PObj);
+VAR cur, old : PObj;
+        w : WORD;
+        m : PCHAR;
+BEGIN
         cur := obj;
-        while cur <> nil do begin
-                if is_type(cur, OBJ_FIXUP) and is_type(cur^.next, OBJ_FIXUP) then begin
+        WHILE cur <> NIL DO BEGIN
+                IF is_type(cur, OBJ_FIXUP) AND is_type(cur^.next, OBJ_FIXUP) THEN BEGIN
                         old := cur^.next;
                         cur^.next := cur^.next^.next;
                         w := cur^.count + old^.count;
-                        getmem(m, w);
-                        move(cur^.mem^, m^, cur^.count);
-                        move(old^.mem^, m[cur^.count], old^.count);
-                        freemem(cur^.mem, cur^.count);
+                        GetMem(m, w);
+                        Move(cur^.mem^, m^, cur^.count);
+                        Move(old^.mem^, m[cur^.count], old^.count);
+                        FreeMem(cur^.mem, cur^.count);
                         cur^.count := w;
                         cur^.mem := m;
-                        freemem(old^.mem, old^.count);
-                        freemem(old, sizeof(TObj));
-                end else cur := cur^.next;
-        end;
-end;
+                        FreeMem(old^.mem, old^.count);
+                        FreeMem(old, SizeOf(TObj));
+                END ELSE cur := cur^.next;
+        END;
+END;
 
-procedure free(obj:PObj);
-var next : PObj;
-begin
-        while obj <> nil do begin
+PROCEDURE free(obj:PObj);
+VAR next : PObj;
+BEGIN
+        WHILE obj <> NIL DO BEGIN
                 next := obj^.next;
-                freemem(obj^.mem, obj^.count);
-                freemem(obj, sizeof(TObj));
+                FreeMem(obj^.mem, obj^.count);
+                FreeMem(obj, SizeOf(TObj));
                 obj := next;
-        end;
-end;
+        END;
+END;
 
-function lookup(obj:PObj; t:byte):PObj;
-var r : PObj;
-begin
-        r := nil;
-        while obj <> nil do begin
-                if obj^.t = t then begin r := obj; break; end;
+FUNCTION lookup(obj:PObj; t:BYTE):PObj;
+VAR r : PObj;
+BEGIN
+        r := NIL;
+        WHILE obj <> NIL DO BEGIN
+                IF obj^.t = t THEN BEGIN r := obj; break; end;
                 obj := obj^.next;
-        end;
+        END;
         lookup := r;
-end;
+END;
 
-function get_str(obj:PObj; ofs, len:word):string;
-var     r : string;
-        i : integer;
-begin
+FUNCTION get_str(obj:PObj; ofs, len:WORD):STRING;
+VAR     r : STRING;
+        i : INTEGER;
+BEGIN
         r := '';
         dec(len);
-        for i := 0 to len do begin
+        FOR i := 0 to len DO BEGIN
                 r := r + obj^.mem[ofs + i];
-        end;
+        END;
         get_str := r;
-end;
+END;
 
-procedure set_str(obj:PObj; ofs:word; s:string);
-var i, l : integer;
-begin
+PROCEDURE set_str(obj:PObj; ofs:WORD; s:STRING);
+VAR i, l : INTEGER;
+BEGIN
         l := length(s);
-        for i := 1 to l do begin
+        FOR i := 1 to l DO BEGIN
                 obj^.mem[ofs + i - 1] := s[i];
-        end;
-end;
+        END;
+END;
 
-procedure getFixupAttr(bval:char; var p:integer; var B:integer; var C:integer; var A:integer);
-begin
-        p := (ord(bval) shr 7) and 1;
-        b := (ord(bval) shr 6) and 1;
-        c := (ord(bval) shr 3) and $07;
-        a := ord(bval) and $07;
-end;
+PROCEDURE getFixupAttr(bval:CHAR; VAR p:INTEGER; VAR B:INTEGER; VAR C:INTEGER; VAR A:INTEGER);
+BEGIN
+        p := (ORD(bval) SHR 7) AND 1;
+        b := (ORD(bval) SHR 6) AND 1;
+        c := (ORD(bval) SHR 3) AND $07;
+        a := ORD(bval) AND $07;
+END;
 
-procedure setFixupAttr(p:integer; B:integer; C:integer; A:integer; var bval:char);
-begin
+PROCEDURE setFixupAttr(p:INTEGER; B:INTEGER; C:INTEGER; A:INTEGER; VAR bval:CHAR);
+BEGIN
         bval := #0;
-        bval := chr(ord(bval) or (p and 1) shl 7);
-        bval := chr(ord(bval) or (b and 1) shl 6);
-        bval := chr(ord(bval) or (c and 7) shl 3);
-        bval := chr(ord(bval) or (a and 7));
-end;
+        bval := CHR(ORD(bval) or (p AND 1) SHL 7);
+        bval := CHR(ORD(bval) or (b AND 1) SHL 6);
+        bval := CHR(ORD(bval) or (c AND 7) SHL 3);
+        bval := CHR(ORD(bval) or (a AND 7));
+END;
 
-procedure getFixupLocat(b1, b2:char; var ofs:word; var location:integer; var m:integer; var one:integer);
-var w : word;
-begin
-        w := (ord(b1) and $ff) or ((ord(b2) and $ff) shl 8);
-        ofs := (w shr 6) and $3f;
-        location := (w shr 2) and $f;
-        m := (w shr 1) and $1;
-        one := w and $1;
-end;
+PROCEDURE getFixupLocat(b1, b2:CHAR; VAR ofs:WORD; VAR location:INTEGER; VAR m:INTEGER; VAR one:INTEGER);
+VAR w : WORD;
+BEGIN
+        w := (ORD(b1) AND $ff) or ((ORD(b2) AND $ff) SHL 8);
+        ofs := (w SHR 6) AND $3f;
+        location := (w SHR 2) AND $f;
+        m := (w SHR 1) AND $1;
+        one := w AND $1;
+END;
 
-procedure getFixupFixData(bval:char; var target:integer; var P:integer; var T:integer; var Frame:integer; var F:integer);
-begin
-        target := (ord(bval) shr 6) and $03;
-        P := (ord(bval) shr 5) and $01;
-        T := (ord(bval) shr 4) and $01;
-        Frame := (ord(bval) shr 1) and $07;
-        F := ord(bval) and $01;
-end;
+PROCEDURE getFixupFixData(bval:CHAR; VAR target:INTEGER; VAR P:INTEGER; VAR T:INTEGER; VAR Frame:INTEGER; VAR F:INTEGER);
+BEGIN
+        target := (ORD(bval) SHR 6) AND $03;
+        P := (ORD(bval) SHR 5) AND $01;
+        T := (ORD(bval) SHR 4) AND $01;
+        Frame := (ORD(bval) SHR 1) AND $07;
+        F := ORD(bval) AND $01;
+END;
 
-procedure getFixupTrDat(bval:char; var Thread:integer; var Method:integer; var D:integer; var Zero:integer);
-begin
-        Thread := (ord(bval) shr 6) and $03;
-        Method := (ord(bval) shr 3) and $07;
-        D := (ord(bval) shr 1) and $01;
-        Zero := ord(bval) and $01;
-end;
+PROCEDURE getFixupTrDat(bval:CHAR; VAR Thread:INTEGER; VAR Method:INTEGER; VAR D:INTEGER; VAR Zero:INTEGER);
+BEGIN
+        Thread := (ORD(bval) SHR 6) AND $03;
+        Method := (ORD(bval) SHR 3) AND $07;
+        D := (ORD(bval) SHR 1) AND $01;
+        Zero := ORD(bval) AND $01;
+END;
 
-end.
+END.

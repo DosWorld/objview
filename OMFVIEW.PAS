@@ -1,7 +1,7 @@
 {
  MIT License
 
-Copyright (c) 2020 Viacheslav Komenda
+Copyright (c) 2022 Viacheslav Komenda
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -24,7 +24,7 @@ SOFTWARE.
 {$G-,A-,D-,L-,R-,S-,Q-}
 {$M 32000, 128000, 650000}
 
-uses scr, kbd, strutil, obj, dwedpar;
+uses scr, kbd, strutil, obj;
 
 const
 BGCOLOR = $07;
@@ -299,29 +299,26 @@ begin
                 key := hi(view_list(title, vroot, vcur, total, scr_start, scr_pos));
                 case key of
                 SCAN_ESC: break;
+                SCAN_F3: break;
+                SCAN_F4: break;
                 SCAN_RIGHT, SCAN_ENTER: begin view_entry(title, vcur^.o); kbd.reset; end;
                 end;
         end;
         freeall(vroot);
 end;
 
-type
-PString = ^String;
-
 var
         o        : PObj;
         fname    : string;
-        params   : ParamsContext;
 begin
-        writeln('OmfView (c) 2020 by DosWorld.  MIT License');
-        pinit(params, trim(PString(ptr(PrefixSeg, $80))^));
-        if not phas_next(params) then begin
+        writeln('OmfView (c) 2022 by DosWorld.  MIT License');
+        if paramcount <> 1 then begin
                 writeln;
                 writeln('Usage:');
                 writeln(chr(9) + upstr(basename(paramstr(0))) + ' file.obj');
                 halt(1);
         end;
-        fname := pnext(params);
+        fname := paramstr(1);
         o:=obj.load(fname);
         if o = nil then begin
                 writeln('Could not load ', fname);

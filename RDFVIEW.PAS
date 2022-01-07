@@ -1,7 +1,7 @@
 {
  MIT License
 
-Copyright (c) 2021 Viacheslav Komenda
+Copyright (c) 2022 Viacheslav Komenda
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -24,7 +24,7 @@ SOFTWARE.
 {$G-,A-,D-,L-,R-,S-,Q-}
 {$M 32000, 128000, 650000}
 
-USES scr, kbd, strutil, dwedpar;
+USES scr, kbd, strutil, System2;
 
 TYPE
 
@@ -71,7 +71,8 @@ BEGIN
         IF hl THEN c:=$20 ELSE BEGIN
                 IF Length(cur^.name) > 0 THEN BEGIN
                         IF cur^.name[1] = ' ' THEN c := $13
-                        ELSE IF cur^.name[1] = '*' THEN c := $14;
+                        ELSE IF cur^.name[1] = '*' THEN c := $14
+                        ELSE IF cur^.name[1] = '-' THEN c := $12;
                 END;
         END;
         getc := c;
@@ -301,7 +302,7 @@ BEGIN
         DumpRec := r;
 END;
 
-PROCEDURE DumpSegs(VAR f : FILE; modlen : LONGINT);
+PROCEDURE DumpSegs(VAR f : BFILE; modlen : LONGINT);
 VAR
         segtype  : WORD;
         segnum   : WORD;
@@ -337,7 +338,7 @@ type
 PString = ^String;
 
 VAR
-        f : FILE;
+        f : BFILE;
         sign    : STRING;
         fullen  : LONGINT;
         modlen  : LONGINT;
@@ -348,26 +349,22 @@ VAR
         i       : INTEGER;
         fname   : STRING;
         str     : STRING;
-        params  : ParamsContext;
 BEGIN
-        Writeln('RDFVIEW for NASM-0.98.39  (c) 2020 by DosWorld.  MIT License');
-        pinit(params, trim(PString(ptr(PrefixSeg, $80))^));
-        if not phas_next(params) then begin
-                Writeln;
-                Writeln('Usage:');
-                Writeln(chr(9) + upstr(basename(paramstr(0))) + ' file.rdf');
+        System.Writeln('RDFVIEW for NASM-0.98.39  (c) 2022 by DosWorld.  MIT License');
+        if paramcount <> 1 then begin
+                System.Writeln;
+                System.Writeln('Usage:');
+                System.Writeln(chr(9) + upstr(basename(paramstr(0))) + ' file.rdf');
                 Halt(1);
         end;
-        fname := pnext(params);
+        fname := paramstr(1);
         vroot := NIL;
         vlast := NIL;
         Assign(f, fname);
-        {$I-}
-        System.Reset(f, 1);
-        i := ioResult;
-        {$i+}
+        Reset(f);
+        i := f.ioResult;
         IF i <> 0 THEN BEGIN
-                Writeln('Could not load ', fname);
+                System.Writeln('Could not load ', fname);
                 Halt(1);
         END;
 
@@ -376,15 +373,13 @@ BEGIN
         BlockRead(f, modlen, SizeOf(LONGINT));
         BlockRead(f, hdrlen, SizeOf(LONGINT));
         sign[0] := #6;
-        Append('');
-        Append(' File name:   ' + fname);
         Append(' File size:   ' + hexdw(fullen) + ' ' + itoa(fullen));
         Append(' Signature:   ' + sign);
         Append(' Module size: ' + hexdw(modlen) + ' ' + itoa(modlen));
         Append(' Header size: ' + hexdw(hdrlen) + ' ' + itoa(hdrlen));
         Append('');
         IF sign = 'RDOFF2' THEN BEGIN
-                Append(' Header records');
+                Append('- Header records');
                 hdrrecs := FALSE;
                 WHILE hdrlen <> 0 DO BEGIN
                         str := hexdw(FilePos(f)) + ' ';
@@ -398,7 +393,7 @@ BEGIN
                 END;
                 IF not hdrrecs THEN Append('*** Here is no any records ***');
                 Append('') ;
-                Append(' Segments');
+                Append('- Segments');
                 DumpSegs(f, modlen);
                 Append('');
         END ELSE BEGIN
