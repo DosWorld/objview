@@ -24,9 +24,9 @@ SOFTWARE.
 {$G-,A-,D-,L-,R-,S-,Q-}
 {$M 32000, 128000, 650000}
 
-uses scr, kbd, strutil, obj, system2;
+USES scr, kbd, strutil, obj, system2;
 
-const
+CONST
 BGCOLOR = $07;
 
 type
@@ -310,20 +310,20 @@ end;
 var
         o        : PObj;
         fname    : string;
-begin
+BEGIN
         System.writeln('OmfView (c) 2022 by DosWorld.  MIT License');
-        if paramcount <> 1 then begin
+        IF ParamCount <> 1 THEN BEGIN
                 System.writeln;
                 System.writeln('Usage:');
-                System.writeln(chr(9) + upstr(basename(paramstr(0))) + ' file.obj');
-                halt(1);
-        end;
-        fname := paramstr(1);
+                System.writeln(#9, upstr(basename(paramstr(0))), ' file.obj');
+                Halt(1);
+        END;
+        fname := ParamStr(1);
         o:=obj.load(fname);
-        if o = nil then begin
+        IF o = NIL THEN BEGIN
                 WriteLnErr('Could not read '+ fname);
-                halt(1);
-        end;
+                Halt(1);
+        END;
         h := getheight;
         w := getwidth;
         scr.push;
@@ -332,5 +332,5 @@ begin
         scr.show;
         obj.free(o);
         kbd.reset;
-        halt(0);
-end.
+        Halt(0);
+END.

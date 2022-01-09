@@ -334,9 +334,6 @@ BEGIN
         IF not havesegs THEN Append('*** Here is no any segments ***');
 END;
 
-type
-PString = ^String;
-
 VAR
         f : BFILE;
         sign    : STRING;
@@ -350,14 +347,14 @@ VAR
         fname   : STRING;
         str     : STRING;
 BEGIN
-        System.Writeln('RDFVIEW for NASM-0.98.39  (c) 2022 by DosWorld.  MIT License');
-        if paramcount <> 1 then begin
-                System.Writeln;
-                System.Writeln('Usage:');
-                System.Writeln(chr(9) + upstr(basename(paramstr(0))) + ' file.rdf');
+        System.WriteLn('RDFVIEW for NASM-0.98.39  (c) 2022 by DosWorld.  MIT License');
+        IF ParamCount <> 1 THEN BEGIN
+                System.WriteLn;
+                System.WriteLn('Usage:');
+                System.WriteLn(#9, upstr(basename(paramstr(0))), ' file.rdf');
                 Halt(1);
-        end;
-        fname := paramstr(1);
+        END;
+        fname := ParamStr(1);
         vroot := NIL;
         vlast := NIL;
         Assign(f, fname);
@@ -370,8 +367,8 @@ BEGIN
 
         fullen := FileSize(f);
         BlockRead(f, sign[1], 6);
-        BlockRead(f, modlen, SizeOf(LONGINT));
-        BlockRead(f, hdrlen, SizeOf(LONGINT));
+        modlen := ReadDWord(f, modlen, SizeOf(LONGINT));
+        hdrlen := ReadDWord(f, hdrlen, SizeOf(LONGINT));
         sign[0] := #6;
         Append(' File size:   ' + hexdw(fullen) + ' ' + itoa(fullen));
         Append(' Signature:   ' + sign);
@@ -409,5 +406,4 @@ BEGIN
         scr.show;
         kbd.reset;
         Halt(0);
-
 END.

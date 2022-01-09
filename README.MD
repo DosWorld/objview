@@ -25,6 +25,12 @@ RDFView :
 
 ![Image Screenshot - RDFVIEW main screen](https://github.com/DosWorld/omfview/raw/main/RDFVIEW.PNG)
 
+# Dependencies
+
+Requires System2 library:
+
+https://github.com/DosWorld/libsystem2
+
 # Build
 
 You need Turbo Pascal and my small make in path.
