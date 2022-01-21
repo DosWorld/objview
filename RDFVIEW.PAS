@@ -35,13 +35,11 @@ TViewItem = RECORD
 END;
 
 CONST
-
 BGCOLOR = $17;
 
 VAR
-
-h, w : WORD;
-vroot, vlast : PViewItem;
+        h, w         : WORD;
+        vroot, vlast : PViewItem;
 
 PROCEDURE freeall(root : PViewItem);
 VAR item : PViewItem;
@@ -54,7 +52,7 @@ BEGIN
 END;
 
 PROCEDURE Append(s : STRING);
-VAR item : PViewItem;
+VAR     item : PViewItem;
 BEGIN
         GetMem(item, SizeOf(TViewItem));
         item^.name := s;
@@ -65,7 +63,7 @@ BEGIN
 END;
 
 FUNCTION getc(hl : BOOLEAN; cur : PViewItem) : BYTE;
-VAR c : BYTE;
+VAR     c : BYTE;
 BEGIN
         c := BGCOLOR;
         IF hl THEN c:=$20 ELSE BEGIN
@@ -165,12 +163,11 @@ BEGIN
 END;
 
 PROCEDURE view(fname : STRING; vroot : PViewItem);
-VAR     vcur : PViewItem;
-        s              : STRING;
-        i, total, key  : WORD;
+VAR     vcur               : PViewItem;
+        s                  : STRING;
+        i, total, key      : WORD;
         scr_start, scr_pos : WORD;
-        title          : STRING;
-        name           : STRING;
+        name, title        : STRING;
 BEGIN
         scr_start := 0;
         scr_pos := 0;
@@ -199,8 +196,7 @@ PLONGINT = ^LONGINT;
 PWORD    = ^WORD;
 
 FUNCTION WriteRelo(VAR rdata:STRING):STRING;
-VAR
-        r : STRING;
+VAR     r : STRING;
 BEGIN
         r := 'SEG: ' + hexb(ORD(rdata[1]));
         r := r + ', OFS: ' + hexdw(PLONGINT(@rdata[2])^);
@@ -255,7 +251,7 @@ VAR
 BEGIN
         r := '';
         l := Length(rdata);
-        IF l > 16 THEN l := 16;
+        IF l > 32 THEN l := 32;
         FOR i := 1 TO l DO r := r + hexb(ORD(rdata[i])) + ' ';
         WriteDefault := r;
 END;
@@ -314,10 +310,10 @@ BEGIN
         havesegs := FALSE;
         WHILE NOT eof(f) DO BEGIN
                 havesegs := TRUE;
-                BlockRead(f, segtype, SizeOf(segtype));
-                BlockRead(f, segnum, SizeOf(segnum));
-                BlockRead(f, reserv, SizeOf(reserv));
-                BlockRead(f, seglen, SizeOf(seglen));
+                segtype := ReadWord(f);
+                segnum := ReadWord(f);
+                reserv := ReadWord(f);
+                seglen := ReadDWord(f);
                 s := '';
                 s := s + hexdw(FilePos(f)) + ' ';
                 s := s + hexdw(seglen) + ' ';
@@ -366,9 +362,10 @@ BEGIN
         END;
 
         fullen := FileSize(f);
+        FillChar(sign, SizeOf(sign), #0);
         BlockRead(f, sign[1], 6);
-        modlen := ReadDWord(f, modlen, SizeOf(LONGINT));
-        hdrlen := ReadDWord(f, hdrlen, SizeOf(LONGINT));
+        modlen := ReadDWord(f);
+        hdrlen := ReadDWord(f);
         sign[0] := #6;
         Append(' File size:   ' + hexdw(fullen) + ' ' + itoa(fullen));
         Append(' Signature:   ' + sign);
@@ -380,7 +377,8 @@ BEGIN
                 hdrrecs := FALSE;
                 WHILE hdrlen <> 0 DO BEGIN
                         str := hexdw(FilePos(f)) + ' ';
-                        BlockRead(f, rtype, 1);
+                        rtype := ReadByte(f);
+                        FillChar(rdata, SizeOf(rdata), #0);
                         BlockRead(f, rdata[0], 1);
                         Dec(hdrlen, 2);
                         BlockRead(f, rdata[1], ORD(rdata[0]));
@@ -405,5 +403,5 @@ BEGIN
         scr.pop;
         scr.show;
         kbd.reset;
-        Halt(0);
+        IF sign <> 'RDOFF2' THEN Halt(1);
 END.
