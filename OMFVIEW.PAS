@@ -24,7 +24,7 @@ SOFTWARE.
 {$G-,A-,D-,L-,R-,S-,Q-}
 {$M 32000, 128000, 650000}
 
-USES scr, kbd, strutil, obj, system2;
+USES System2, kminput, scr, str, strutil, obj;
 
 CONST
 BGCOLOR = $07;
@@ -117,12 +117,12 @@ var vcur : PViewItem;
         s1, s2 :string;
 begin
         needredraw := true;
-        str(total, s2);
+        system.str(total, s2);
         while true do begin
                 if needredraw then begin
                         scr.cls(BGCOLOR);
                         current := nil;
-                        str(scr_pos + scr_start + 1, s1);
+                        system.str(scr_pos + scr_start + 1, s1);
                         vcur := vroot; i := 0;
                         while (vcur <> nil) and (i < scr_start) do begin
                                 inc(i);
@@ -140,7 +140,7 @@ begin
                         printhl(0, 0, $70, $74, title + ' ' + lpad(s1, 5) + ' / ' + s2);
                 end;
                 scr.show;
-                k := getkey;
+                k := kbd_getkey;
                 case hi(k) of
                 SCAN_HOME: begin
                                 scr_pos := 0;
@@ -301,7 +301,7 @@ begin
                 SCAN_ESC: break;
                 SCAN_F3: break;
                 SCAN_F4: break;
-                SCAN_RIGHT, SCAN_ENTER: begin view_entry(title, vcur^.o); kbd.reset; end;
+                SCAN_RIGHT, SCAN_ENTER: begin view_entry(title, vcur^.o); kbd_reset; end;
                 end;
         end;
         freeall(vroot);
@@ -313,9 +313,11 @@ var
 BEGIN
         System.writeln('OmfView (c) 2022 by DosWorld.  MIT License');
         IF ParamCount <> 1 THEN BEGIN
+                fname := basename(paramstr(0));
+                upstr(fname);
                 System.writeln;
                 System.writeln('Usage:');
-                System.writeln(#9, upstr(basename(paramstr(0))), ' file.obj');
+                System.writeln(#9, fname, ' file.obj');
                 Halt(1);
         END;
         fname := ParamStr(1);
@@ -327,10 +329,12 @@ BEGIN
         h := getheight;
         w := getwidth;
         scr.push;
-        view(upstr(upstr(basename(fname))), o);
+        fname := basename(fname);
+        upstr(fname);
+        view(fname, o);
         scr.pop;
         scr.show;
         obj.free(o);
-        kbd.reset;
+        kbd_reset;
         Halt(0);
 END.

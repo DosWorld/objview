@@ -63,7 +63,7 @@ function gety:integer;
 
 implementation
 
-uses mouse;
+uses kminput;
 
 const vseg : word = 0;
 
@@ -272,7 +272,7 @@ end;
 
 procedure show;assembler;
 asm
-        call       mhide
+        call       mouse_hide
 
         push       es
         push       ds
@@ -289,7 +289,7 @@ asm
         pop        ds
         pop        es
 
-        call       mshow
+        call       mouse_show
 end;
 
 procedure locate(x, y : integer);assembler;
@@ -421,5 +421,5 @@ begin
         line_size := getwidth shl 1;
         getmem(screen, screen_size);
         move(mem[vseg:0], screen[0], screen_size);
-        mouse.mshow;
+        mouse_show;
 end.

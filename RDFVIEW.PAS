@@ -24,7 +24,7 @@ SOFTWARE.
 {$G-,A-,D-,L-,R-,S-,Q-}
 {$M 32000, 128000, 650000}
 
-USES scr, kbd, strutil, System2;
+USES System2, kminput, scr, str, strutil;
 
 TYPE
 
@@ -88,12 +88,12 @@ VAR vcur : PViewItem;
         s1, s2 : STRING;
 BEGIN
         needredraw := TRUE;
-        str(total, s2);
+        system.str(total, s2);
         WHILE TRUE DO BEGIN
                 IF needredraw THEN BEGIN
                         scr.cls(BGCOLOR);
                         current := NIL;
-                        str(scr_pos + scr_start + 1, s1);
+                        system.str(scr_pos + scr_start + 1, s1);
                         vcur := vroot; i := 0;
                         WHILE (vcur <> NIL) AND (i < scr_start) DO BEGIN
                                 inc(i);
@@ -111,7 +111,7 @@ BEGIN
                         printhl(0, 0, $70, $74, title + ' ' + lpad(s1, 5) + ' / ' + s2);
                 END;
                 scr.show;
-                k := getkey;
+                k := kbd_getkey;
                 CASE hi(k) OF
                 SCAN_HOME: BEGIN
                                 scr_pos := 0;
@@ -341,13 +341,15 @@ VAR
         rdata   : STRING;
         i       : INTEGER;
         fname   : STRING;
-        str     : STRING;
+        st      : STRING;
 BEGIN
         System.WriteLn('RDFVIEW for NASM-0.98.39  (c) 2022 by DosWorld.  MIT License');
         IF ParamCount <> 1 THEN BEGIN
+                fname := basename(paramstr(0));
+                upstr(fname);
                 System.WriteLn;
                 System.WriteLn('Usage:');
-                System.WriteLn(#9, upstr(basename(paramstr(0))), ' file.rdf');
+                System.WriteLn(#9, fname, ' file.rdf');
                 Halt(1);
         END;
         fname := ParamStr(1);
@@ -376,14 +378,14 @@ BEGIN
                 Append('- Header records');
                 hdrrecs := FALSE;
                 WHILE hdrlen <> 0 DO BEGIN
-                        str := hexdw(FilePos(f)) + ' ';
+                        st := hexdw(FilePos(f)) + ' ';
                         rtype := ReadByte(f);
                         FillChar(rdata, SizeOf(rdata), #0);
                         BlockRead(f, rdata[0], 1);
                         Dec(hdrlen, 2);
                         BlockRead(f, rdata[1], ORD(rdata[0]));
                         Dec(hdrlen, ORD(rdata[0]));
-                        Append(str + hexb(ORD(rdata[0])) + ' ' + hexb(rtype) + '-' + DumpRec(rtype, rdata));
+                        Append(st + hexb(ORD(rdata[0])) + ' ' + hexb(rtype) + '-' + DumpRec(rtype, rdata));
                         hdrrecs := TRUE;
                 END;
                 IF not hdrrecs THEN Append('*** Here is no any records ***');
@@ -399,9 +401,11 @@ BEGIN
         w := getwidth;
 
         scr.push;
-        view(upstr(upstr(basename(fname))), vroot);
+        fname := basename(fname);
+        upstr(fname);
+        view(fname, vroot);
         scr.pop;
         scr.show;
-        kbd.reset;
+        kbd_reset;
         IF sign <> 'RDOFF2' THEN Halt(1);
 END.
